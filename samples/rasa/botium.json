@@ -1,0 +1,25 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "Rasa Socket.io Sample",
+      "CONTAINERMODE": "simple-socketio",
+      "SIMPLESOCKETIO_ENDPOINTURL": "https://demo.botiumbox.com",
+      "SIMPLESOCKETIO_ENDPOINTPATH": "/rasa-demo/socket.io",
+      "SIMPLESOCKETIO_EVENT_USERSAYS": "user_uttered",
+      "SIMPLESOCKETIO_EVENT_BOTSAYS": "bot_uttered",
+      "SIMPLESOCKETIO_SENDTEXT_FIELD": "message",
+      "SIMPLESOCKETIO_SENDMEDIA_FIELD": "message",
+      "SIMPLESOCKETIO_RECEIVETEXT_FIELD": "text",
+      "SIMPLESOCKETIO_RECEIVEATTACHMENT_FIELD": "link",
+      "USER_INPUTS": [
+        {
+          "ref": "MEDIA",
+          "src": "MediaInput",
+          "args": {
+            "downloadMedia": true
+          }
+        }
+      ]      
+    }
+  }
+}

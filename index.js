@@ -1,59 +1,65 @@
-const debug = require('debug')('botium-connector-simple-socketio')
-const _ = require('lodash')
-const util = require('util')
-var io = require('socket.io-client')
-
-const Capabilities = {
-}
-
-class BotiumConnectorSimpleSocketIO {
-  constructor ({ queueBotSays, caps }) {
-    this.queueBotSays = queueBotSays
-    this.caps = caps
-  }
-
-  Validate () {
-    debug('Validate called')
-
-    return Promise.resolve()
-  }
-
-  Build () {
-    debug('Build called')
-    this.socket = io.connect('http://localhost:3000', {reconnect: true})
-    this.socket.on('chat message', (message) => {
-      this.queueBotSays({ sender: 'bot', messageText: message.msg })
-    })
-    return Promise.resolve()
-  }
-
-  Start () {
-    debug('Start called')
-
-    return Promise.resolve()
-  }
-
-  UserSays ({messageText}) {
-    debug('UserSays called')
-    this.socket.emit('chat message', { user: 'me', msg: messageText });
-
-    return Promise.resolve()
-  }
-
-  Stop () {
-    debug('Stop called')
-
-    return Promise.resolve()
-  }
-
-  Clean () {
-    debug('Clean called')
-
-    return Promise.resolve()
-  }
-}
+const BotiumConnectorSimpleSocketIOClass = require('./src/connector')
 
 module.exports = {
   PluginVersion: 1,
-  PluginClass: BotiumConnectorSimpleSocketIO
+  PluginClass: BotiumConnectorSimpleSocketIOClass,
+  PluginDesc: {
+    name: 'Generic Socket.io Interface',
+    provider: 'Botium',
+    features: {
+      sendAttachments: true,
+      audioInput: true
+    },
+    capabilities: [
+      {
+        name: 'SIMPLESOCKETIO_ENDPOINTURL',
+        label: 'Socket.io Host Url',
+        type: 'url',
+        required: true
+      },
+      {
+        name: 'SIMPLESOCKETIO_ENDPOINTPATH',
+        label: 'Socket.io Endpoint Path',
+        description: 'Default /socket.io',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_EVENT_USERSAYS',
+        label: '#me Event Name',
+        type: 'string',
+        required: true
+      },
+      {
+        name: 'SIMPLESOCKETIO_SENDTEXT_FIELD',
+        label: 'Payload Field for Text Input',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_SENDMEDIA_FIELD',
+        label: 'Payload Field for Attachments Input',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_EVENT_BOTSAYS',
+        label: '#bot Event Name',
+        type: 'string',
+        required: true
+      },
+      {
+        name: 'SIMPLESOCKETIO_RECEIVETEXT_FIELD',
+        label: 'Payload Field for Text Response',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_RECEIVEATTACHMENT_FIELD',
+        label: 'Payload Field for Attachments Response',
+        type: 'string',
+        required: false
+      }
+    ]
+  }
 }
