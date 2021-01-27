@@ -1,10 +1,15 @@
+const fs = require('fs')
+const path = require('path')
 const BotiumConnectorSimpleSocketIOClass = require('./src/connector')
+
+const logo = fs.readFileSync(path.join(__dirname, 'logo.png')).toString('base64')
 
 module.exports = {
   PluginVersion: 1,
   PluginClass: BotiumConnectorSimpleSocketIOClass,
   PluginDesc: {
     name: 'Generic Socket.io Interface',
+    avatar: logo,
     provider: 'Botium',
     features: {
       sendAttachments: true,
