@@ -43,7 +43,13 @@ module.exports = {
       },
       {
         name: 'SIMPLESOCKETIO_SENDMEDIA_FIELD',
-        label: 'Payload Field for Attachments Input',
+        label: 'Payload Field for Attachment Input',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_SENDBUTTON_FIELD',
+        label: 'Payload Field for Button Input',
         type: 'string',
         required: false
       },
@@ -54,14 +60,57 @@ module.exports = {
         required: true
       },
       {
-        name: 'SIMPLESOCKETIO_RECEIVETEXT_FIELD',
-        label: 'Payload Field for Text Response',
+        name: 'SIMPLESOCKETIO_RECEIVETEXT_JSONPATH',
+        label: 'JSON-Path for text response',
         type: 'string',
         required: false
       },
       {
-        name: 'SIMPLESOCKETIO_RECEIVEATTACHMENT_FIELD',
-        label: 'Payload Field for Attachments Response',
+        name: 'SIMPLESOCKETIO_RECEIVEATTACHMENTS_JSONPATH',
+        label: 'JSON-Path for media attachments',
+        helper: 'Should return string or array of strings',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_RECEIVEBUTTONS_JSONPATH',
+        label: 'JSON-Path for Quick-Reply Recognition',
+        helper: 'Should return string or array of strings',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_START_HOOK',
+        label: 'Start hook',
+        helper: 'Start Hook',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_SESSION_REQUEST_HOOK',
+        label: 'Session request hook',
+        helper: 'Session request hook',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_USERSAYS_EVENT_HOOK',
+        label: 'JSON-Path for Quick-Reply Recognition',
+        helper: 'User says event Hook',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_BOTSAYS_EVENT_HOOK',
+        label: 'JSON-Path for Quick-Reply Recognition',
+        helper: 'Bot says event Hook',
+        type: 'string',
+        required: false
+      },
+      {
+        name: 'SIMPLESOCKETIO_STOP_HOOK',
+        label: 'JSON-Path for Quick-Reply Recognition',
+        helper: 'Stop Hook',
         type: 'string',
         required: false
       }
