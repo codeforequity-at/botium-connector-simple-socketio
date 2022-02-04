@@ -20,6 +20,11 @@ const Capabilities = {
   SIMPLESOCKETIO_RECEIVETEXT_JSONPATH: 'SIMPLESOCKETIO_RECEIVETEXT_JSONPATH',
   SIMPLESOCKETIO_RECEIVEATTACHMENTS_JSONPATH: 'SIMPLESOCKETIO_RECEIVEATTACHMENTS_JSONPATH',
   SIMPLESOCKETIO_RECEIVEBUTTONS_JSONPATH: 'SIMPLESOCKETIO_RECEIVEBUTTONS_JSONPATH',
+  SIMPLESOCKETIO_RECEIVECARDS_JSONPATH: 'SIMPLESOCKETIO_RECEIVECARDS_JSONPATH',
+  SIMPLESOCKETIO_RECEIVECARD_CARD_TEXT_JSONPATH: 'SIMPLESOCKETIO_RECEIVECARD_CARD_TEXT_JSONPATH',
+  SIMPLESOCKETIO_RECEIVECARD_CARD_SUBTEXT_JSONPATH: 'SIMPLESOCKETIO_RECEIVECARD_CARD_SUBTEXT_JSONPATH',
+  SIMPLESOCKETIO_RECEIVECARD_CARD_BUTTONS_JSONPATH: 'SIMPLESOCKETIO_RECEIVECARD_CARD_BUTTONS_JSONPATH',
+  SIMPLESOCKETIO_RECEIVECARD_CARD_ATTACHMENTS_JSONPATH: 'SIMPLESOCKETIO_RECEIVECARD_CARD_ATTACHMENTS_JSONPATH',
   SIMPLESOCKETIO_START_HOOK: 'SIMPLESOCKETIO_START_HOOK',
   SIMPLESOCKETIO_SESSION_REQUEST_HOOK: 'SIMPLESOCKETIO_SESSION_REQUEST_HOOK',
   SIMPLESOCKETIO_USERSAYS_EVENT_HOOK: 'SIMPLESOCKETIO_USERSAYS_EVENT_HOOK',
@@ -85,6 +90,7 @@ class BotiumConnectorSimpleSocketIO {
     this.socket.on(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_BOTSAYS], async (message) => {
       const buttons = []
       const media = []
+      const cards = []
 
       if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVEATTACHMENTS_JSONPATH]) {
         const responseMedia = jp.query(message, this.caps[Capabilities.SIMPLESOCKETIO_RECEIVEATTACHMENTS_JSONPATH])
@@ -113,6 +119,71 @@ class BotiumConnectorSimpleSocketIO {
         }
       }
 
+      if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARDS_JSONPATH]) {
+        const _getText = (responseCardText) => {
+          if (responseCardText) {
+            const texts = _.isArray(responseCardText) ? _.flattenDeep(responseCardText) : [responseCardText]
+            if (texts.length > 1) {
+              debug(`more than one text found for card: ${util.inspect(texts)}`)
+            }
+            if (texts.length > 0) {
+              return texts[0]
+            }
+          }
+        }
+
+        const responseCards = jp.query(message, this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARDS_JSONPATH])
+        if (responseCards) {
+          (_.isArray(responseCards) ? _.flattenDeep(responseCards) : [responseCards]).forEach(c => {
+            const card = { }
+            if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_TEXT_JSONPATH]) {
+              card.text = _getText(jp.query(c, this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_TEXT_JSONPATH]))
+            }
+            if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_SUBTEXT_JSONPATH]) {
+              card.subtext = _getText(jp.query(c, this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_SUBTEXT_JSONPATH]))
+            }
+
+            if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_BUTTONS_JSONPATH]) {
+              const cardButtons = []
+              const responseCardButtons = jp.query(c, this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_BUTTONS_JSONPATH])
+              if (responseCardButtons) {
+                (_.isArray(responseCardButtons) ? _.flattenDeep(responseCardButtons) : [responseCardButtons]).forEach(b =>
+                  cardButtons.push({
+                    text: b
+                  })
+                )
+              }
+              if (cardButtons.length > 0) {
+                card.buttons = [...cardButtons]
+              }
+            }
+
+            if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_ATTACHMENTS_JSONPATH]) {
+              const cardMedia = []
+              const responseCardAttachment = jp.query(c, this.caps[Capabilities.SIMPLESOCKETIO_RECEIVECARD_CARD_ATTACHMENTS_JSONPATH])
+              if (responseCardAttachment) {
+                (_.isArray(responseCardAttachment) ? _.flattenDeep(responseCardAttachment) : [responseCardAttachment]).forEach(m => {
+                  if (m && _.isString(m)) {
+                    cardMedia.push({
+                      mediaUri: m,
+                      mimeType: mime.lookup(m) || 'application/unknown'
+                    })
+                  }
+                })
+              }
+              if (cardMedia.length > 0) {
+                card.media = [...cardMedia]
+              }
+            }
+
+            if (_.keys(card).length > 0) {
+              cards.push(card)
+            }
+          })
+          debug(`found response cards: ${util.inspect(cards)}`)
+        }
+      }
+
       const botMessages = []
       let hasMessageText = false
       if (this.caps[Capabilities.SIMPLESOCKETIO_RECEIVETEXT_JSONPATH]) {
@@ -122,18 +193,18 @@ class BotiumConnectorSimpleSocketIO {
           if (!messageText) continue
 
           hasMessageText = true
-          const botMsg = { sourceData: message, messageText, media, buttons }
+          const botMsg = { sourceData: message, messageText, media, buttons, cards }
           await executeHook(this.caps, this.responseHook, Object.assign({ botMsg, messageTextIndex }, this.view))
           botMessages.push(botMsg)
         }
       }
 
       if (!hasMessageText) {
-        const botMsg = { messageText: '', sourceData: message, media, buttons }
+        const botMsg = { messageText: '', sourceData: message, media, buttons, cards }
         const beforeHookKeys = Object.keys(botMsg)
         await executeHook(this.caps, this.responseHook, Object.assign({ botMsg }, this.view))
         const afterHookKeys = Object.keys(botMsg)
-        if (beforeHookKeys.length !== afterHookKeys.length || !!(botMsg.messageText && botMsg.messageText.length > 0) || botMsg.media.length > 0 || botMsg.buttons.length > 0) {
+        if (beforeHookKeys.length !== afterHookKeys.length || !!(botMsg.messageText && botMsg.messageText.length > 0) || botMsg.media.length > 0 || botMsg.buttons.length > 0 || botMsg.cards.length > 0) {
           botMessages.push(botMsg)
         }
       }
