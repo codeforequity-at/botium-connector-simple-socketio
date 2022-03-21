@@ -3,14 +3,17 @@ const _ = require('lodash')
 const { v4: uuidv4 } = require('uuid')
 const jp = require('jsonpath')
 const mime = require('mime-types')
-const io = require('socket.io-client')
+const io2 = require('socket.io-client2')
+const io3 = require('socket.io-client3')
+const io4 = require('socket.io-client4')
 const util = require('util')
 const { getHook, executeHook } = require('botium-core').HookUtils
 
 const Capabilities = {
+  SIMPLESOCKETIO_SERVER_MAJOR_VERSION: 'SIMPLESOCKETIO_SERVER_MAJOR_VERSION',
+  SIMPLESOCKETIO_CLIENT_OPTIONS: 'SIMPLESOCKETIO_CLIENT_OPTIONS',
   SIMPLESOCKETIO_ENDPOINTURL: 'SIMPLESOCKETIO_ENDPOINTURL',
   SIMPLESOCKETIO_ENDPOINTPATH: 'SIMPLESOCKETIO_ENDPOINTPATH',
-  SIMPLESOCKETIO_AUTH_TOKEN: 'SIMPLESOCKETIO_AUTH_TOKEN',
   SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT: 'SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT',
   SIMPLESOCKETIO_EVENT_USERSAYS: 'SIMPLESOCKETIO_EVENT_USERSAYS',
   SIMPLESOCKETIO_EVENT_BOTSAYS: 'SIMPLESOCKETIO_EVENT_BOTSAYS',
@@ -33,6 +36,7 @@ const Capabilities = {
 
 }
 const Defaults = {
+  [Capabilities.SIMPLESOCKETIO_SERVER_MAJOR_VERSION]: '2'
 }
 
 class BotiumConnectorSimpleSocketIO {
@@ -57,16 +61,13 @@ class BotiumConnectorSimpleSocketIO {
 
   async Build () {
     debug('Build called')
-    this.socketOptions = {
-      forceNew: true
+    this.socketOptions = {}
+    if (this.caps[Capabilities.SIMPLESOCKETIO_CLIENT_OPTIONS]) {
+      this.socketOptions = Object.assign({}, this.socketOptions, this.caps[Capabilities.SIMPLESOCKETIO_CLIENT_OPTIONS])
     }
+
     if (this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTPATH]) {
       this.socketOptions.path = this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTPATH]
-    }
-    if (this.caps[Capabilities.SIMPLESOCKETIO_AUTH_TOKEN]) {
-      this.socketOptions.auth = {
-        token: this.caps[Capabilities.SIMPLESOCKETIO_AUTH_TOKEN]
-      }
     }
   }
 
@@ -83,7 +84,16 @@ class BotiumConnectorSimpleSocketIO {
 
     await executeHook(this.caps, this.startHook, Object.assign({ socketOptions: this.socketOptions }, this.view))
 
-    this.socket = io(this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL], this.socketOptions)
+    if (this.caps[Capabilities.SIMPLESOCKETIO_SERVER_MAJOR_VERSION] === '2') {
+      this.socket = io2(this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL], this.socketOptions)
+    } else if (this.caps[Capabilities.SIMPLESOCKETIO_SERVER_MAJOR_VERSION] === '3') {
+      this.socket = io3(this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL], this.socketOptions)
+    } else if (this.caps[Capabilities.SIMPLESOCKETIO_SERVER_MAJOR_VERSION] === '4') {
+      this.socket = io4(this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL], this.socketOptions)
+    } else {
+      throw new Error('SIMPLESOCKETIO_SERVER_MAJOR_VERSION capability is wrong or not defined')
+    }
+
     this.socket.on('disconnect', (reason) => {
       debug(`Received 'disconnect' event, reason: ${reason}`)
     })

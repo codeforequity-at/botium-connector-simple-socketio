@@ -17,6 +17,27 @@ module.exports = {
     },
     capabilities: [
       {
+        name: 'SIMPLESOCKETIO_SERVER_MAJOR_VERSION',
+        label: 'Socket.io major version',
+        description: 'The major version of socket.io server package on the bot side.',
+        type: 'choice',
+        required: true,
+        choices: [
+          {
+            key: '2',
+            name: 'v2'
+          },
+          {
+            key: '3',
+            name: 'v3'
+          },
+          {
+            key: '4',
+            name: 'v4'
+          }
+        ]
+      },
+      {
         name: 'SIMPLESOCKETIO_ENDPOINTURL',
         label: 'Socket.io Host Url',
         type: 'url',
