@@ -61,14 +61,13 @@ class BotiumConnectorSimpleSocketIO {
 
   async Build () {
     debug('Build called')
-    this.socketOptions = {
-      forceNew: true
-    }
-    if (this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTPATH]) {
-      this.socketOptions.path = this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTPATH]
-    }
+    this.socketOptions = {}
     if (this.caps[Capabilities.SIMPLESOCKETIO_CLIENT_OPTIONS]) {
       this.socketOptions = Object.assign({}, this.caps[Capabilities.SIMPLESOCKETIO_CLIENT_OPTIONS], this.socketOptions)
+    }
+
+    if (this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTPATH]) {
+      this.socketOptions.path = this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTPATH]
     }
   }
 
