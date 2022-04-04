@@ -33,8 +33,8 @@ const Capabilities = {
   SIMPLESOCKETIO_USERSAYS_EVENT_HOOK: 'SIMPLESOCKETIO_USERSAYS_EVENT_HOOK',
   SIMPLESOCKETIO_BOTSAYS_EVENT_HOOK: 'SIMPLESOCKETIO_BOTSAYS_EVENT_HOOK',
   SIMPLESOCKETIO_STOP_HOOK: 'SIMPLESOCKETIO_STOP_HOOK'
-
 }
+
 const Defaults = {
   [Capabilities.SIMPLESOCKETIO_SERVER_MAJOR_VERSION]: '2'
 }
@@ -93,6 +93,26 @@ class BotiumConnectorSimpleSocketIO {
     } else {
       throw new Error('SIMPLESOCKETIO_SERVER_MAJOR_VERSION capability is wrong or not defined')
     }
+
+    this.socket.io.on('open', () => {
+      debug('Received \'open\' event')
+      this.socket.io.engine.transport.on('pollComplete', () => {
+        debug('Received \'pollComplete\' event')
+        const request = this.socket.io.engine.transport.pollXhr.xhr
+        const cookieHeader = request.getResponseHeader('set-cookie')
+        if (!cookieHeader) {
+          return
+        }
+        let cookie = _.get(this.socket.io.opts, 'extraHeaders.cookie')
+        cookieHeader.forEach(cookieString => {
+          cookie = cookie ? `${cookie}; ${cookieString}` : cookieString
+        })
+        debug('Cookies after \'pollComplete\': ', cookie)
+        this.socket.io.opts.extraHeaders = {
+          cookie: cookie
+        }
+      })
+    })
 
     this.socket.on('disconnect', (reason) => {
       debug(`Received 'disconnect' event, reason: ${reason}`)
