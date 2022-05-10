@@ -78,6 +78,9 @@ Socket.io Host Url
 ### SIMPLESOCKETIO_ENDPOINTPATH
 Socket.io Endpoint Path - Default /socket.io
 
+### SIMPLESOCKETIO_CLIENT_OPTIONS
+Socket.io client options in json form according to their [documentation](https://socket.io/docs/v4/client-options/)
+
 ### SIMPLESOCKETIO_EVENT_USERSAYS
 #me Event Name
 

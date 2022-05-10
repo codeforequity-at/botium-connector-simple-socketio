@@ -51,6 +51,13 @@ module.exports = {
         required: false
       },
       {
+        name: 'SIMPLESOCKETIO_CLIENT_OPTIONS',
+        label: 'Socket.io client-options',
+        type: 'json',
+        description: 'Define a client-option json object according to socket.io client-options documentation',
+        required: false
+      },
+      {
         name: 'SIMPLESOCKETIO_EVENT_USERSAYS',
         label: '#me Event Name',
         type: 'string',
