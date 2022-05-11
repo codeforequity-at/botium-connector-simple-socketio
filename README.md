@@ -72,11 +72,38 @@ Botium setup is ready, you can begin to write your [BotiumScript](https://botium
 
 Set the capability __CONTAINERMODE__ to __simple-socketio__ to activate this connector.
 
+### SIMPLESOCKETIO_SERVER_MAJOR_VERSION
+The major version of socket.io server package on the bot side
+
 ### SIMPLESOCKETIO_ENDPOINTURL
 Socket.io Host Url
 
 ### SIMPLESOCKETIO_ENDPOINTPATH
 Socket.io Endpoint Path - Default /socket.io
+
+### SIMPLESOCKETIO_CLIENT_OPTIONS
+Socket.io client options in json form according to their [documentation](https://socket.io/docs/v4/client-options/)
+
+### SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT
+This event is emitted in connect to receive a remoteId in 'session_confirm' event
+
+### SIMPLESOCKETIO_SESSION_REQUEST_HOOK
+Javascript commands which executed before emitting SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT. Global variables available: socketOptions, container, context, botium
+
+### SIMPLESOCKETIO_COOKIE_AUTOFILL
+When it's true in pollComplete event the cookies from the server are replicated in the extraHeaders property of client options
+
+### SIMPLESOCKETIO_START_HOOK
+Javascript commands which executed at the beginning of start function. Global variables available: socketOptions, container, context, botium
+
+### SIMPLESOCKETIO_STOP_HOOK
+Javascript commands which executed at the beginning of stop function. Global variables available: socketOptions, container, context, botium
+
+### SIMPLESOCKETIO_USERSAYS_EVENT_HOOK
+Javascript commands which executed before emitting SIMPLESOCKETIO_EVENT_USERSAYS. Global variables available: socketOptions, container, context, botium
+
+### SIMPLESOCKETIO_BOTSAYS_EVENT_HOOK
+Javascript commands which executed at the end of SIMPLESOCKETIO_EVENT_BOTSAYS function. Global variables available: socketOptions, container, context, botium
 
 ### SIMPLESOCKETIO_EVENT_USERSAYS
 #me Event Name
@@ -87,11 +114,34 @@ Payload Field for Text Input
 ### SIMPLESOCKETIO_SENDMEDIA_FIELD
 Payload Field for Attachments Input
 
+### SIMPLESOCKETIO_SENDBUTTON_FIELD
+Payload Field for Button Input
+
 ### SIMPLESOCKETIO_EVENT_BOTSAYS
 #bot Event Name
 
-### SIMPLESOCKETIO_RECEIVETEXT_FIELD
-Payload Field for Text Response
+### SIMPLESOCKETIO_RECEIVETEXT_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Text Response
 
-### SIMPLESOCKETIO_RECEIVEATTACHMENT_FIELD
-Payload Field for Attachments Response
+### SIMPLESOCKETIO_RECEIVEATTACHMENTS_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Attachments Response
+
+### SIMPLESOCKETIO_RECEIVEBUTTONS_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Buttons Response
+
+### SIMPLESOCKETIO_RECEIVECARDS_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Cards response
+
+### SIMPLESOCKETIO_RECEIVECARD_CARD_TEXT_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Cards Text response
+
+### SIMPLESOCKETIO_RECEIVECARD_CARD_SUBTEXT_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Cards Subtext response
+
+### SIMPLESOCKETIO_RECEIVECARD_CARD_BUTTONS_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Cards Buttons response
+
+### SIMPLESOCKETIO_RECEIVECARD_CARD_ATTACHMENTS_JSONPATH
+[JSONPath expression](https://github.com/dchester/jsonpath) to extract Cards Attachments response
+
+

@@ -96,32 +96,11 @@ class BotiumConnectorSimpleSocketIO {
       throw new Error('SIMPLESOCKETIO_SERVER_MAJOR_VERSION capability is wrong or not defined')
     }
 
-    if (this.caps[Capabilities.SIMPLESOCKETIO_COOKIE_AUTOFILL]) {
-      this.socket.io.on('open', () => {
-        debug('Received \'open\' event')
-        this.socket.io.engine.transport.on('pollComplete', () => {
-          debug('Received \'pollComplete\' event')
-          const request = this.socket.io.engine.transport.pollXhr.xhr
-          const cookieHeader = request.getResponseHeader('set-cookie')
-          if (!cookieHeader) {
-            return
-          }
-          let cookie = _.get(this.socket.io.opts, 'extraHeaders.cookie')
-          cookieHeader.forEach(cookieString => {
-            cookie = cookie ? `${cookie}; ${cookieString}` : cookieString
-          })
-          debug('Cookies after \'pollComplete\': ', cookie)
-          this.socket.io.opts.extraHeaders = {
-            cookie: cookie
-          }
-        })
-      })
-    }
-
     this.socket.on('disconnect', (reason) => {
       debug(`Received 'disconnect' event, reason: ${reason}`)
     })
     this.socket.on(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_BOTSAYS], async (message) => {
+      debug(`Bot response, sessionId: ${_.get(this, 'view.context.remoteId')}`)
       const buttons = []
       const media = []
       const cards = []
@@ -248,39 +227,82 @@ class BotiumConnectorSimpleSocketIO {
       }
     })
 
-    return new Promise((resolve, reject) => {
-      let resolved = false
-      this.socket.on('connect', async () => {
-        debug('Received \'connect\' event')
-        if (this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]) {
-          const sessionRequestData = {}
-          await executeHook(this.caps, this.sessionRequestHook, Object.assign({ sessionRequestData }, this.view))
-          this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
+    const startPromises = []
+    if (this.caps[Capabilities.SIMPLESOCKETIO_COOKIE_AUTOFILL]) {
+      startPromises.push(
+        new Promise((resolve) => {
+          let resolved = false
+          let counter = 0
+          this.socket.io.on('open', () => {
+            debug('Received \'open\' event')
+            this.socket.io.engine.transport.on('pollComplete', () => {
+              if (resolved) {
+                return
+              }
+              debug('Received \'pollComplete\' event')
+              counter++
+              if (counter >= 3) {
+                debug('Failed to find cookies during \'pollComplete\' event')
+                resolve()
+              }
+              const request = this.socket.io.engine.transport.pollXhr.xhr
+              const cookieHeader = request.getResponseHeader('set-cookie')
+              if (!cookieHeader) {
+                return
+              }
+              let cookie = _.get(this.socket.io.opts, 'extraHeaders.cookie')
+              cookieHeader.forEach(cookieString => {
+                cookie = cookie ? `${cookie}; ${cookieString}` : cookieString
+              })
+              debug('Cookies after \'pollComplete\': ', cookie)
+              this.socket.io.opts.extraHeaders = {
+                cookie: cookie
+              }
+              resolve()
+              resolved = true
+            })
+          })
+        })
+      )
+    }
 
-          this.socket.on('session_confirm', (remoteId) => {
-            debug(`session_confirm:${this.socket.id} session_id:${remoteId}`)
-            this.view.context.remoteId = remoteId
+    startPromises.push(
+      new Promise((resolve, reject) => {
+        let resolved = false
+        this.socket.on('connect', async () => {
+          debug('Received \'connect\' event')
+          if (this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]) {
+            const sessionRequestData = {}
+            await executeHook(this.caps, this.sessionRequestHook, Object.assign({ sessionRequestData }, this.view))
+            this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
+
+            this.socket.on('session_confirm', (remoteId) => {
+              debug(`session_confirm:${this.socket.id} session_id:${remoteId}`)
+              this.view.context.remoteId = remoteId
+              if (resolved) return
+              resolve()
+              resolved = true
+            })
+          } else {
             if (resolved) return
             resolve()
             resolved = true
-          })
-        } else {
+          }
+        })
+        this.socket.on('connect_error', (err) => {
+          debug(`Received 'connect_error' event, err: ${err}`)
           if (resolved) return
-          resolve()
+          reject(new Error(`Connection to ${this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL]} failed: ${err.message}`))
           resolved = true
-        }
+        })
       })
-      this.socket.on('connect_error', (err) => {
-        debug(`Received 'connect_error' event, err: ${err}`)
-        if (resolved) return
-        reject(new Error(`Connection to ${this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL]} failed: ${err.message}`))
-        resolved = true
-      })
-    })
+    )
+
+    return Promise.all(startPromises)
   }
 
   async UserSays (msg) {
-    debug('UserSays called')
+    debug(`UserSays called sessionId: ${_.get(this, 'view.context.remoteId')}`)
     this.view.botium.stepId = uuidv4()
     const args = {
     }
@@ -317,17 +339,18 @@ class BotiumConnectorSimpleSocketIO {
     }
 
     await executeHook(this.caps, this.requestHook, Object.assign({ socketArgs: args, msg }, this.view))
+    debug(`User request body: ${util.inspect(args, false, null, true)}`)
     this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_USERSAYS], args)
   }
 
   async Stop () {
-    debug('Stop called')
+    debug(`Stop called sessionId: ${_.get(this, 'view.context.remoteId')}`)
     await executeHook(this.caps, this.stopHook, Object.assign({ socket: this.socket }, this.view))
     await this._closeSocket()
   }
 
   async Clean () {
-    debug('Clean called')
+    debug(`Clean called sessionId: ${_.get(this, 'view.context.remoteId')}`)
     await this._closeSocket()
   }
 
