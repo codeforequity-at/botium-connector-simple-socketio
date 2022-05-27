@@ -45,6 +45,7 @@ class BotiumConnectorSimpleSocketIO {
   constructor ({ queueBotSays, caps }) {
     this.queueBotSays = queueBotSays
     this.caps = caps
+    this.connectorSessionId = null
   }
 
   async Validate () {
@@ -75,6 +76,11 @@ class BotiumConnectorSimpleSocketIO {
 
   async Start () {
     debug('Start called')
+    if (this.connectorSessionId != null) {
+      throw new Error(`The previous connector session (${this.connectorSessionId}) is not stopped and clean yet.`)
+    }
+    this.connectorSessionId = uuidv4()
+    debug(`Start called, (connector session id generated: ${this.connectorSessionId})`)
     this.view = {
       container: this,
       context: {},
@@ -97,10 +103,10 @@ class BotiumConnectorSimpleSocketIO {
     }
 
     this.socket.on('disconnect', (reason) => {
-      debug(`Received 'disconnect' event, reason: ${reason}`)
+      this._debug(`Received 'disconnect' event, reason: ${reason}`)
     })
     this.socket.on(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_BOTSAYS], async (message) => {
-      debug(`Bot response, sessionId: ${_.get(this, 'view.context.remoteId')}`)
+      this._debug(`Bot response, (sessionId: ${_.get(this, 'view.context.remoteId')})`)
       const buttons = []
       const media = []
       const cards = []
@@ -116,7 +122,7 @@ class BotiumConnectorSimpleSocketIO {
               })
             }
           })
-          debug(`found response media: ${util.inspect(media)}`)
+          this._debug(`found response media: ${util.inspect(media)}`)
         }
       }
 
@@ -128,7 +134,7 @@ class BotiumConnectorSimpleSocketIO {
               text: b
             })
           )
-          debug(`found response buttons: ${util.inspect(buttons)}`)
+          this._debug(`found response buttons: ${util.inspect(buttons)}`)
         }
       }
 
@@ -137,7 +143,7 @@ class BotiumConnectorSimpleSocketIO {
           if (responseCardText) {
             const texts = _.isArray(responseCardText) ? _.flattenDeep(responseCardText) : [responseCardText]
             if (texts.length > 1) {
-              debug(`more than one text found for card: ${util.inspect(texts)}`)
+              this._debug(`more than one text found for card: ${util.inspect(texts)}`)
             }
             if (texts.length > 0) {
               return texts[0]
@@ -193,7 +199,7 @@ class BotiumConnectorSimpleSocketIO {
               cards.push(card)
             }
           })
-          debug(`found response cards: ${util.inspect(cards)}`)
+          this._debug(`found response cards: ${util.inspect(cards)}`)
         }
       }
 
@@ -234,15 +240,15 @@ class BotiumConnectorSimpleSocketIO {
           let resolved = false
           let counter = 0
           this.socket.io.on('open', () => {
-            debug('Received \'open\' event')
+            this._debug('Received \'open\' event')
             this.socket.io.engine.transport.on('pollComplete', () => {
               if (resolved) {
                 return
               }
-              debug('Received \'pollComplete\' event')
+              this._debug('Received \'pollComplete\' event')
               counter++
               if (counter >= 3) {
-                debug('Failed to find cookies during \'pollComplete\' event')
+                this._debug('Failed to find cookies during \'pollComplete\' event')
                 resolve()
               }
               const request = this.socket.io.engine.transport.pollXhr.xhr
@@ -254,7 +260,7 @@ class BotiumConnectorSimpleSocketIO {
               cookieHeader.forEach(cookieString => {
                 cookie = cookie ? `${cookie}; ${cookieString}` : cookieString
               })
-              debug('Cookies after \'pollComplete\': ', cookie)
+              this._debug(`Cookies after 'pollComplete': ${cookie}`)
               this.socket.io.opts.extraHeaders = {
                 cookie: cookie
               }
@@ -270,14 +276,14 @@ class BotiumConnectorSimpleSocketIO {
       new Promise((resolve, reject) => {
         let resolved = false
         this.socket.on('connect', async () => {
-          debug('Received \'connect\' event')
+          this._debug('Received \'connect\' event')
           if (this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]) {
             const sessionRequestData = {}
             await executeHook(this.caps, this.sessionRequestHook, Object.assign({ sessionRequestData }, this.view))
             this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
 
             this.socket.on('session_confirm', (remoteId) => {
-              debug(`session_confirm:${this.socket.id} session_id:${remoteId}`)
+              this._debug(`session_confirm:${this.socket.id} session_id:${remoteId}`)
               this.view.context.remoteId = remoteId
               if (resolved) return
               resolve()
@@ -290,7 +296,7 @@ class BotiumConnectorSimpleSocketIO {
           }
         })
         this.socket.on('connect_error', (err) => {
-          debug(`Received 'connect_error' event, err: ${err}`)
+          this._debug(`Received 'connect_error' event, err: ${err}`)
           if (resolved) return
           reject(new Error(`Connection to ${this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL]} failed: ${err.message}`))
           resolved = true
@@ -302,7 +308,7 @@ class BotiumConnectorSimpleSocketIO {
   }
 
   async UserSays (msg) {
-    debug(`UserSays called sessionId: ${_.get(this, 'view.context.remoteId')}`)
+    this._debug(`UserSays called (sessionId: ${_.get(this, 'view.context.remoteId')})`)
     this.view.botium.stepId = uuidv4()
     const args = {
     }
@@ -339,18 +345,19 @@ class BotiumConnectorSimpleSocketIO {
     }
 
     await executeHook(this.caps, this.requestHook, Object.assign({ socketArgs: args, msg }, this.view))
-    debug(`User request body: ${util.inspect(args, false, null, true)}`)
+    this._debug(`User request body: ${util.inspect(args, false, null, true)}`)
     this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_USERSAYS], args)
   }
 
   async Stop () {
-    debug(`Stop called sessionId: ${_.get(this, 'view.context.remoteId')}`)
+    this._debug(`Stop called (sessionId: ${_.get(this, 'view.context.remoteId')})`)
     await executeHook(this.caps, this.stopHook, Object.assign({ socket: this.socket }, this.view))
     await this._closeSocket()
   }
 
   async Clean () {
-    debug(`Clean called sessionId: ${_.get(this, 'view.context.remoteId')}`)
+    this._debug(`Clean called (sessionId: ${_.get(this, 'view.context.remoteId')})`)
+    this.connectorSessionId = null
     await this._closeSocket()
   }
 
@@ -359,6 +366,10 @@ class BotiumConnectorSimpleSocketIO {
       this.socket.close()
       this.socket = null
     }
+  }
+
+  _debug (message) {
+    debug(`${this.connectorSessionId}: ${message}`)
   }
 }
 
