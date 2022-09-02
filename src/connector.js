@@ -45,7 +45,7 @@ class BotiumConnectorSimpleSocketIO {
   constructor ({ queueBotSays, caps }) {
     this.queueBotSays = queueBotSays
     this.caps = caps
-    this.connectorSessionId = null
+    this.connectorId = null
   }
 
   async Validate () {
@@ -76,11 +76,11 @@ class BotiumConnectorSimpleSocketIO {
 
   async Start () {
     debug('Start called')
-    if (this.connectorSessionId != null) {
-      throw new Error(`The previous connector session (${this.connectorSessionId}) is not stopped and clean yet.`)
+    if (this.connectorId != null) {
+      throw new Error(`The previous connector id (${this.connectorId}) is not cleaned yet.`)
     }
-    this.connectorSessionId = uuidv4()
-    debug(`Start called, (connector session id generated: ${this.connectorSessionId})`)
+    this.connectorId = uuidv4()
+    debug(`Start called, (connector id generated: ${this.connectorId})`)
     this.view = {
       container: this,
       context: {},
@@ -106,7 +106,7 @@ class BotiumConnectorSimpleSocketIO {
       this._debug(`Received 'disconnect' event, reason: ${reason}`)
     })
     this.socket.on(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_BOTSAYS], async (message) => {
-      this._debug(`Bot response, (sessionId: ${_.get(this, 'view.context.remoteId')})`)
+      this._debug(`Bot response, (socket.io sessionId: ${_.get(this, 'view.context.remoteId')})`)
       const buttons = []
       const media = []
       const cards = []
@@ -242,10 +242,11 @@ class BotiumConnectorSimpleSocketIO {
           this.socket.io.on('open', () => {
             this._debug('Received \'open\' event')
             this.socket.io.engine.transport.on('pollComplete', () => {
+              this._debug('Received \'pollComplete\' event')
               if (resolved) {
+                this._debug(`Cookie autofill is already resolved. 'socket.io.opts.extraHeaders': ${JSON.stringify(this.socket.io.opts.extraHeaders, null, 2)}`)
                 return
               }
-              this._debug('Received \'pollComplete\' event')
               counter++
               if (counter >= 3) {
                 this._debug('Failed to find cookies during \'pollComplete\' event')
@@ -260,10 +261,8 @@ class BotiumConnectorSimpleSocketIO {
               cookieHeader.forEach(cookieString => {
                 cookie = cookie ? `${cookie}; ${cookieString}` : cookieString
               })
-              this._debug(`Cookies after 'pollComplete': ${cookie}`)
-              this.socket.io.opts.extraHeaders = {
-                cookie: cookie
-              }
+              _.set(this.socket.io.opts, 'extraHeaders.cookie', cookie)
+              this._debug(`Cookie autofill is resolved. 'socket.io.opts.extraHeaders': ${JSON.stringify(this.socket.io.opts.extraHeaders, null, 2)}`)
               resolve()
               resolved = true
             })
@@ -283,7 +282,7 @@ class BotiumConnectorSimpleSocketIO {
             this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
 
             this.socket.on('session_confirm', (remoteId) => {
-              this._debug(`session_confirm:${this.socket.id} session_id:${remoteId}`)
+              this._debug(`session_confirm:${this.socket.id} socket.io session_id:${remoteId}`)
               this.view.context.remoteId = remoteId
               if (resolved) return
               resolve()
@@ -304,11 +303,25 @@ class BotiumConnectorSimpleSocketIO {
       })
     )
 
-    return Promise.all(startPromises)
+    await Promise.all(startPromises)
+    if (this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]) {
+      return new Promise((resolve) => {
+        const sessionRequestData = {}
+        executeHook(this.caps, this.sessionRequestHook, Object.assign({ sessionRequestData }, this.view)).then(() => {
+          this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
+        })
+
+        this.socket.on('session_confirm', (remoteId) => {
+          this._debug(`session_confirm:${this.socket.id} socket.io session_id:${remoteId}`)
+          this.view.context.remoteId = remoteId
+          resolve()
+        })
+      })
+    }
   }
 
   async UserSays (msg) {
-    this._debug(`UserSays called (sessionId: ${_.get(this, 'view.context.remoteId')})`)
+    this._debug(`UserSays called (socket.io sessionId: ${_.get(this, 'view.context.remoteId')})`)
     this.view.botium.stepId = uuidv4()
     const args = {
     }
@@ -345,19 +358,20 @@ class BotiumConnectorSimpleSocketIO {
     }
 
     await executeHook(this.caps, this.requestHook, Object.assign({ socketArgs: args, msg }, this.view))
+    this._debug(`User request emit with 'socket.io.opts.extraHeaders': ${JSON.stringify(this.socket.io.opts.extraHeaders, null, 2)}`)
     this._debug(`User request body: ${util.inspect(args, false, null, true)}`)
     this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EVENT_USERSAYS], args)
   }
 
   async Stop () {
-    this._debug(`Stop called (sessionId: ${_.get(this, 'view.context.remoteId')})`)
+    this._debug(`Stop called (socket.io sessionId: ${_.get(this, 'view.context.remoteId')})`)
     await executeHook(this.caps, this.stopHook, Object.assign({ socket: this.socket }, this.view))
+    this.connectorId = null
     await this._closeSocket()
   }
 
   async Clean () {
-    this._debug(`Clean called (sessionId: ${_.get(this, 'view.context.remoteId')})`)
-    this.connectorSessionId = null
+    this._debug(`Clean called (socket.io sessionId: ${_.get(this, 'view.context.remoteId')})`)
     await this._closeSocket()
   }
 
@@ -369,7 +383,7 @@ class BotiumConnectorSimpleSocketIO {
   }
 
   _debug (message) {
-    debug(`${this.connectorSessionId}: ${message}`)
+    debug(`${this.connectorId}: ${message}`)
   }
 }
 
