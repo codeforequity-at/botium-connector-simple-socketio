@@ -234,7 +234,7 @@ class BotiumConnectorSimpleSocketIO {
     })
 
     const startPromises = []
-    if (this.caps[Capabilities.SIMPLESOCKETIO_COOKIE_AUTOFILL]) {
+    if (this.caps[Capabilities.SIMPLESOCKETIO_COOKIE_AUTOFILL] && (!this.socketOptions.transports || this.socketOptions.transports.includes('polling'))) {
       startPromises.push(
         new Promise((resolve) => {
           let resolved = false
@@ -269,45 +269,31 @@ class BotiumConnectorSimpleSocketIO {
           })
         })
       )
+    } else {
+      if (this.caps[Capabilities.SIMPLESOCKETIO_COOKIE_AUTOFILL]) {
+        debug(`Cookie replication can't be used with these transports in client options: ${JSON.stringify(this.socketOptions)}`)
+      }
     }
 
     startPromises.push(
       new Promise((resolve, reject) => {
-        let resolved = false
         this.socket.on('connect', async () => {
           this._debug('Received \'connect\' event')
-          if (this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]) {
-            const sessionRequestData = {}
-            await executeHook(this.caps, this.sessionRequestHook, Object.assign({ sessionRequestData }, this.view))
-            this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
-
-            this.socket.on('session_confirm', (remoteId) => {
-              this._debug(`session_confirm:${this.socket.id} socket.io session_id:${remoteId}`)
-              this.view.context.remoteId = remoteId
-              if (resolved) return
-              resolve()
-              resolved = true
-            })
-          } else {
-            if (resolved) return
-            resolve()
-            resolved = true
-          }
-        })
-        this.socket.on('connect_error', (err) => {
-          this._debug(`Received 'connect_error' event, err: ${err}`)
-          if (resolved) return
-          reject(new Error(`Connection to ${this.caps[Capabilities.SIMPLESOCKETIO_ENDPOINTURL]} failed: ${err.message}`))
-          resolved = true
+          resolve()
         })
       })
     )
+
+    this.socket.on('connect_error', (err) => {
+      this._debug(`Received 'connect_error' event, err: ${err}`)
+    })
 
     await Promise.all(startPromises)
     if (this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]) {
       return new Promise((resolve) => {
         const sessionRequestData = {}
         executeHook(this.caps, this.sessionRequestHook, Object.assign({ sessionRequestData }, this.view)).then(() => {
+          debug(`Session request event ${this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT]} emitted with the following session request data: ${JSON.stringify(sessionRequestData, null, 2)}`)
           this.socket.emit(this.caps[Capabilities.SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT], (sessionRequestData))
         })
 
