@@ -84,6 +84,10 @@ Socket.io Endpoint Path - Default /socket.io
 ### SIMPLESOCKETIO_CLIENT_OPTIONS
 Socket.io client options in json form according to their [documentation](https://socket.io/docs/v4/client-options/)
 
+### SIMPLESOCKETIO_USE_WEBSOCKET_TRANSPORT
+The default and the recommended value is true. When it's true than in the client options the websocket transport will be used:
+`{transports: ['websocket']}`
+
 ### SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT
 This event is emitted in connect to receive a remoteId in 'session_confirm' event
 
