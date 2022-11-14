@@ -1,6 +1,6 @@
 {
   "name": "botium-connector-simple-socketio",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Botium Connector for Socket.io Endpoints",
   "main": "dist/botium-connector-simple-socketio-cjs.js",
   "module": "dist/botium-connector-simple-socketio-es.js",
