@@ -86,7 +86,8 @@ Socket.io client options in json form according to their [documentation](https:/
 
 ### SIMPLESOCKETIO_USE_WEBSOCKET_TRANSPORT
 The default and the recommended value is true. When it's true than in the client options the websocket transport will be used:
-`{transports: ['websocket']}`
+`{transports: ['websocket']}`. We recommend to use websocket transport, because with long http polling, we had a fragile connection 
+and it causes troubles in case of sticky session.
 
 ### SIMPLESOCKETIO_EMIT_SESSION_REQUEST_EVENT
 This event is emitted in connect to receive a remoteId in 'session_confirm' event
