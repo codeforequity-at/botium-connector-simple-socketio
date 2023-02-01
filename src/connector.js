@@ -286,7 +286,7 @@ class BotiumConnectorSimpleSocketIO {
     startPromises.push(
       new Promise((resolve) => {
         this.socket.on('connect', async () => {
-          this._debug('Received \'connect\' event')
+          this._debug(`Received 'connect' event ${this.socket.id}`)
           resolve()
         })
       })
@@ -384,7 +384,7 @@ class BotiumConnectorSimpleSocketIO {
   }
 
   _debug (message) {
-    debug(`${this.connectorId}: ${message}`)
+    debug(`(connector ID: ${this.connectorId}): ${message}`)
   }
 }
 
